@@ -9,7 +9,7 @@ The mod will work with Minecraft Forge running MC 1.12.2 (this is the only versi
 
 The mod adds two commands:
 
-**/registerLightIP <Hue Hub Local IP> [Light Group Name]**
+**/registerLightIP [Hue Hub Local IP] [Light Group Name]**
 
 **/deregisterLightIP**
 
