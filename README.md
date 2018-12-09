@@ -7,9 +7,9 @@ This is my first Minecraft mod. It will sync your Philips Hue smart lights compl
 ## How To Use
 The mod will work with Minecraft Forge running MC 1.12.2 (this is the only version I’ve tested on so far). However, it’s not doing anything crazy, so I suspect it will work on any modern Minecraft version.
 
-The plugin adds two commands:
+The mod adds two commands:
 
-**/registerLightIP [Hue Hub Local IP] [Light Group Name]**
+**/registerLightIP <Hue Hub Local IP> [Light Group Name]**
 
 **/deregisterLightIP**
 
