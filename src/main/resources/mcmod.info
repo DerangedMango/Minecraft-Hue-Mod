@@ -1,0 +1,16 @@
+[
+{
+  "modid": "minecraft-hue",
+  "name": "Minecraft Hue",
+  "description": "Syncs Minecraft with Philips Hue smart lights.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://github.com/DerangedMango/Minecraft-Hue-Mod",
+  "updateUrl": "",
+  "authorList": ["DerangedMango"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
