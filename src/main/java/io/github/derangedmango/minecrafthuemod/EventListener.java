@@ -1,5 +1,9 @@
 package io.github.derangedmango.minecrafthuemod;
 
+import java.util.concurrent.TimeUnit;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraftforge.client.event.sound.PlaySoundEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
@@ -48,6 +52,63 @@ public class EventListener {
 		if(++tick / runRate == 1) {
 			tick = 0;
 			task.run();
+		}
+	}
+	
+	@SubscribeEvent
+	public void onLightning(PlaySoundEvent event) {
+		if(event.getName().equalsIgnoreCase("entity.lightning.thunder")) {
+			LocalConnection con = task.getCon();
+			
+	        if(con != null && con.toString().equalsIgnoreCase("Ready")) {
+	        	task.pause();
+	        	
+				con.dim(254, 44773, 9, 0);
+				
+				try {
+					TimeUnit.MILLISECONDS.sleep(Long.valueOf(20));
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				
+				con.dim(0, 44773, 9, 0);
+				
+				try {
+					TimeUnit.MILLISECONDS.sleep(Long.valueOf(20));
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				
+				con.dim(254, 44773, 9, 0);
+				con.dim(0, 44773, 9, 1);
+				
+				task.resume();
+        	}
+		}
+	}
+	
+	@SubscribeEvent
+	public void onDamage(LivingHurtEvent event) {
+		if(event.getEntityLiving() instanceof EntityPlayer) {
+			EntityPlayer player = (EntityPlayer) event.getEntityLiving();
+			
+			if(player.getName().equals(sessionUser)) {
+				LocalConnection con = task.getCon();
+				
+				if(con != null && con.toString().equalsIgnoreCase("Ready")) {
+	        		task.pause();
+	            	
+	            	con.dim(254, 60088, 123, 0);
+	    			
+	    			try {
+	    				TimeUnit.MILLISECONDS.sleep(Long.valueOf(125));
+	    			} catch (InterruptedException e) {
+	    				e.printStackTrace();
+	    			}
+	            	
+	            	task.resume();
+	        	}
+			}
 		}
 	}
 }

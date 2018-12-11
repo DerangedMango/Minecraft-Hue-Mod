@@ -65,8 +65,8 @@ public class DimLights {
     	return player.getName();
     }
     
-    public String[] getConInfo() {
-    	return conInfo;
+    public LocalConnection getCon() {
+    	return con;
     }
     
     public void setPlayer(EntityPlayer p) { player = p; }
