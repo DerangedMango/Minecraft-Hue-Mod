@@ -61,28 +61,8 @@ public class EventListener {
 			LocalConnection con = task.getCon();
 			
 	        if(con != null && con.toString().equalsIgnoreCase("Ready")) {
-	        	task.pause();
-	        	
-				con.dim(254, 44773, 9, 0);
-				
-				try {
-					TimeUnit.MILLISECONDS.sleep(Long.valueOf(20));
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				
-				con.dim(0, 44773, 9, 0);
-				
-				try {
-					TimeUnit.MILLISECONDS.sleep(Long.valueOf(20));
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				
-				con.dim(254, 44773, 9, 0);
-				con.dim(0, 44773, 9, 1);
-				
-				task.resume();
+	        	LightningThread thread = new LightningThread(task, con);
+	        	thread.start();
         	}
 		}
 	}
