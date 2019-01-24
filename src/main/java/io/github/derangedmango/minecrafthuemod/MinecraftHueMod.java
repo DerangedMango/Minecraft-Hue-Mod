@@ -174,6 +174,9 @@ public class MinecraftHueMod {
 					out.println("STAINED_CLAY#BADLANDS:558,69");
 					out.println("STAINED_CLAY#MESA:558,69");
 					out.println("STAINED_CLAY#DEFAULT:44379,71");
+					out.println("STAINED_HARDENED_CLAY#BADLANDS:558,69");
+					out.println("STAINED_HARDENED_CLAY#MESA:558,69");
+					out.println("STAINED_HARDENED_CLAY#DEFAULT:44379,71");
 					out.println("STONE#DEFAULT:44559,129");
 					out.println("WATER#DEFAULT:45016,253");
 					out.println("WHITE_WOOL#DEFAULT:41200,96");

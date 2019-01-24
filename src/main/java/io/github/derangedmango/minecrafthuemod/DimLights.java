@@ -262,7 +262,8 @@ public class DimLights {
     	int alphaIndex = domBlock.toUpperCase().charAt(0);
     	alphaIndex -= 65;
 
-    	String biome = player.world.getBiome(player.getPosition()).getBiomeName();
+    	String biome = player.world.getBiome(player.getPosition()).getBiomeName().toUpperCase();
+    	if(biome.contains("MESA")) biome = "MESA";
     	// System.out.println("BIOME: " + biome);
 
     	for(int i = alphaArr[alphaIndex]; i < blockConfigArr.length; i++) {
