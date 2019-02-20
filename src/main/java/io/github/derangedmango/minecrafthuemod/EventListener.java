@@ -44,7 +44,10 @@ public class EventListener {
 	
 	@SubscribeEvent
 	public void onPlayerLogout(PlayerLoggedOutEvent event) {
-		if(event.player.getName().equals(sessionUser)) task.pause();
+		if(event.player.getName().equals(sessionUser)) {
+			task.deactivateFire();
+			task.pause();
+		}
 	}
 	
 	@SubscribeEvent

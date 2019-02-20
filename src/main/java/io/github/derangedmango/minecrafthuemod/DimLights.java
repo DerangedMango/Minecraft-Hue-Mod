@@ -21,6 +21,8 @@ public class DimLights {
 	private boolean paused;
 	private String[] conInfo;
 	private boolean inTheEnd;
+	private boolean nearFire;
+	private FireThread fireThread;
 	private int buttonPromptCounter;
 	private BlockConfig[] blockConfigArr;
 	private int[] alphaArr;
@@ -37,6 +39,8 @@ public class DimLights {
         normalRate = n;
         colorRate = c;
         inTheEnd = false;
+        nearFire = false;
+        fireThread = null;
         buttonPromptCounter = 0;
         blockConfigArr = bc;
         alphaArr = a;
@@ -67,6 +71,14 @@ public class DimLights {
     
     public LocalConnection getCon() {
     	return con;
+    }
+    
+    public void deactivateFire() {
+    	if(fireThread != null) {
+    		fireThread.deactivate();
+    		fireThread = null;
+    		lastHue = -1;
+    	}
     }
     
     public void setPlayer(EntityPlayer p) { player = p; }
@@ -114,16 +126,25 @@ public class DimLights {
     			
     			if(inTheEnd) lightLevel = 15;
     			
-    			if(lightLevel != lastLightLevel || color[0] != lastHue || color[1] != lastSat) {
-    				if(color[0] != lastHue || color[1] != lastSat) {
-    					con.dim(hueLevels[lightLevel], color[0], color[1], colorRate);
-    				} else {
-    					con.dim(hueLevels[lightLevel], color[0], color[1], normalRate);
+    			if(nearFire) {
+    				if(fireThread == null) {
+    					fireThread = new FireThread(con, true);
+    					fireThread.start();
     				}
+    			} else {
+    				this.deactivateFire();
     				
-    				lastLightLevel = lightLevel;
-    				lastHue = color[0];
-    				lastSat = color[1];
+	    			if(lightLevel != lastLightLevel || color[0] != lastHue || color[1] != lastSat) {
+	    				if(color[0] != lastHue || color[1] != lastSat) {
+	    					con.dim(hueLevels[lightLevel], color[0], color[1], colorRate);
+	    				} else {
+	    					con.dim(hueLevels[lightLevel], color[0], color[1], normalRate);
+	    				}
+	    				
+	    				lastLightLevel = lightLevel;
+	    				lastHue = color[0];
+	    				lastSat = color[1];
+	    			}
     			}
     		} else if(con.toString().equalsIgnoreCase("Invalid IP")) {
     			player.sendMessage(new TextComponentString("Error: The IP you registered is not valid."));
@@ -164,8 +185,8 @@ public class DimLights {
     private int[] getDomColor() {
     	String[] blockTypes = new String[75];
 		int[] blockCounts = new int[75];
-
-		int px = (int) player.posX;
+		
+		int px = (int) Math.floor(player.posX);
 		int py = (int) player.posY;
 		int pz = (int) player.posZ;
 		
@@ -175,19 +196,24 @@ public class DimLights {
 		BlockPos loc;
 		String blockName;
 		World world = player.world;
+		String biome = world.getBiome(player.getPosition()).getBiomeName().toUpperCase();
 		
-		if(world.getWorldInfo().getWorldName().equalsIgnoreCase("NETHER")) {
-			inTheEnd = false;
-			return new int[] {67,247};
-    	} else if(world.getWorldInfo().getWorldName().equalsIgnoreCase("THE_END")) {
+		if(biome.equalsIgnoreCase("THE END")) {
     		inTheEnd = true;
     		return new int[] {47416,214};
     	} else {
 			for(int x = px - 2; x <= px + 2; x++) {
 				for(int y = py - 1; y <= py + 1; y++) {
-					for(int z = pz - 2; z <= pz + 2; z++) {
+					for(int z = pz - 2; z <= pz + 2; z++) {						
 						loc = new BlockPos(x, y, z);
 						blockName = consolidateBlockNames(world.getBlockState(loc).getBlock(), world, loc);
+						
+						if(blockName.equalsIgnoreCase("FIRE")) {
+							nearFire = true;
+							return new int[] {3332, 254};
+						}
+						
+						nearFire = false;
 	
 						if(!blockName.equalsIgnoreCase("AIR")) {
 							if(lastIndex > -1) {
@@ -217,15 +243,19 @@ public class DimLights {
 			}
 		}
 
-		int currMax = 0;
+		int currMax = 0, grassCount = 0;
 		String domBlock = "VOID";
 
 		for(int i = 0; i <= lastIndex; i++) {
+			if(blockTypes[i].equals("GRASS")) grassCount = blockCounts[i];
+			
 			if(blockCounts[i] > currMax) {
 				currMax = blockCounts[i];
 				domBlock = blockTypes[i];
 			}
 		}
+		
+		if(domBlock.equals("DIRT") && grassCount > 9) domBlock = "GRASS";
 		
 		inTheEnd = false;
 		
@@ -241,7 +271,8 @@ public class DimLights {
     	
     	if(name.contains("WATER")) {
 			return "WATER";
-		} else if(name.equalsIgnoreCase("LONG_GRASS") || name.equalsIgnoreCase("LEAVES") || name.equalsIgnoreCase("LEAVES_2")) {
+		} else if(name.equalsIgnoreCase("DOUBLE_PLANT") || name.equalsIgnoreCase("TALLGRASS") || name.equalsIgnoreCase("LEAVES") 
+				|| name.equalsIgnoreCase("LEAVES_2")) {
 			return "GRASS";
 		} else if((name.contains("STONE") && !name.contains("SAND") && !name.contains("RED")
 				&& !name.contains("END")) || name.equalsIgnoreCase("GRAVEL")  || name.contains("ORE")) {
@@ -252,7 +283,7 @@ public class DimLights {
 			return "SAND";
 		} else if(name.equalsIgnoreCase("WOOL")) {
 			return world.getBlockState(pos).getValue(block.getBlockState().getProperty("color"))
-					.toString().toUpperCase() + "_WOOL";
+				.toString().toUpperCase() + "_WOOL";
 		} else {
 			return name;
 		}
