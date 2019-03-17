@@ -2,7 +2,10 @@ package io.github.derangedmango.minecrafthuemod;
 
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.ClientCommandHandler;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.ConfigCategory;
+import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -13,6 +16,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Iterator;
 import java.util.Scanner;
 
 @Mod(modid = MinecraftHueMod.MODID, name = MinecraftHueMod.NAME, version = MinecraftHueMod.VERSION)
@@ -23,26 +27,36 @@ public class MinecraftHueMod {
 
     private static Logger logger;
     private static File configDir;
+    public static ModConfig config;
+    public static DimLights task;
     
     private int runRate = 4;
     private int colorRate = 7;
     private int normalRate = 3;
 	private int[] alphaArr = new int[26];
 	private BlockConfig[] blockConfigArr;
-	private DimLights task;
 	private String sessionUser = "";
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
     	logger = event.getModLog();
-        configDir = new File(event.getModConfigurationDirectory().getAbsolutePath() + "/Minecraft-Hue");
+        configDir = new File(event.getModConfigurationDirectory().getAbsolutePath());
+        config = new ModConfig(new File(configDir + "/minecraft-hue.cfg"));
         sessionUser = Minecraft.getMinecraft().getSession().getUsername();
         
-        task = new DimLights(configDir, null, colorRate, normalRate, blockConfigArr, alphaArr);
+        int[] rateArr = setConfigMetadata();
+        
+        if(rateArr != null) {
+        	colorRate = Math.min(Math.max(rateArr[0], 0), 10);
+        	normalRate = Math.min(Math.max(rateArr[1], 0), 10);
+        	runRate = Math.max(rateArr[2], 2);
+        }
+                
+        task = new DimLights(null, colorRate, normalRate, blockConfigArr, alphaArr);
         task.pause();
         
-        ClientCommandHandler.instance.registerCommand(new RegisterLightIPCommand(configDir, task, sessionUser));
-        ClientCommandHandler.instance.registerCommand(new DeregisterLightIPCommand(configDir, task, sessionUser));
+        ClientCommandHandler.instance.registerCommand(new RegisterLightIPCommand(sessionUser));
+        ClientCommandHandler.instance.registerCommand(new DeregisterLightIPCommand(sessionUser));
     }
 
     @EventHandler
@@ -51,16 +65,15 @@ public class MinecraftHueMod {
         
         generateDataFiles();
 		
-		File config = new File(configDir, "config.txt");
+		File blockConfig = new File(configDir, "minecraft-hue-blocks.txt");
 		int entryCounter = 0;
 
-		try(Scanner scanner = new Scanner(config)) {
+		try(Scanner scanner = new Scanner(blockConfig)) {
 			while(scanner.hasNextLine()) {
 				scanner.nextLine();
 				entryCounter++;
 			}
 
-			entryCounter -= 3;
 			scanner.close();
     	} catch(IOException e) {
     		e.printStackTrace();
@@ -72,37 +85,25 @@ public class MinecraftHueMod {
 			alphaArr[i] = blockConfigArr.length;
 		}
 
-		try(Scanner scanner = new Scanner(config)) {
-			int counter = 0;
+		try(Scanner scanner = new Scanner(blockConfig)) {
 			int index = 0;
 			int lastChar = -1;
 			
 			while (scanner.hasNextLine()) {
 				String line = scanner.nextLine();
 				
-				if(counter > 2) {
-					String name = line.substring(0, line.indexOf("#")).toUpperCase();
-					String biome = line.substring(line.indexOf("#") + 1, line.indexOf(":")).toUpperCase();
-					int hue = Integer.valueOf(line.substring(line.indexOf(":") + 1, line.indexOf(",")));
-					int sat = Integer.valueOf(line.substring(line.indexOf(",") + 1));
+				String name = line.substring(0, line.indexOf("#")).toUpperCase();
+				String biome = line.substring(line.indexOf("#") + 1, line.indexOf(":")).toUpperCase();
+				int hue = Integer.valueOf(line.substring(line.indexOf(":") + 1, line.indexOf(",")));
+				int sat = Integer.valueOf(line.substring(line.indexOf(",") + 1));
 
-					int currChar = line.toUpperCase().charAt(0);
-					currChar -= 65;
+				int currChar = line.toUpperCase().charAt(0);
+				currChar -= 65;
 
-					if(currChar != lastChar) alphaArr[currChar] = index;
+				if(currChar != lastChar) alphaArr[currChar] = index;
 
-					blockConfigArr[index++] = new BlockConfig(name, biome, hue, sat);
-					lastChar = currChar;
-				} else if(counter == 0) {
-					runRate = Math.max(Integer.valueOf(line.substring(line.indexOf(":") + 1)), 2);
-					counter++;
-				} else if(counter == 1) {
-					colorRate = Math.max(Integer.valueOf(line.substring(line.indexOf(":") + 1)), 0);
-					counter++;
-				} else if(counter == 2) {
-					normalRate = Math.max(Integer.valueOf(line.substring(line.indexOf(":") + 1)), 0);
-					counter++;
-				}
+				blockConfigArr[index++] = new BlockConfig(name, biome, hue, sat);
+				lastChar = currChar;
 			}
 			
 			scanner.close();
@@ -110,36 +111,76 @@ public class MinecraftHueMod {
     		e.printStackTrace();
     	}
 		
-		FMLCommonHandler.instance().bus().register(
-				new EventListener(task, runRate, colorRate, normalRate, alphaArr, blockConfigArr, sessionUser));
+		MinecraftForge.EVENT_BUS.register(
+				new EventListener(runRate, colorRate, normalRate, alphaArr, blockConfigArr, sessionUser));
 	}
+    
+    public static int[] setConfigMetadata() {
+    	int[] returnArr = null;
+    	
+    	try {
+            config.load();
+            
+            Iterator<ConfigCategory> it = config.getCategory(Configuration.CATEGORY_GENERAL).getChildren().iterator();
+            
+            Property colorRateProp = null, normalRateProp = null, runRateProp = null;
+            Property ipProp = null, groupProp = null, authProp = null;
+            
+            while(it.hasNext()) {
+            	ConfigCategory subcat = it.next();
+            	String subcatName = subcat.getName();
+            	
+            	if(subcatName.equalsIgnoreCase("rate_settings")) {
+            		subcat.setComment("Mod run and transition rate settings");
+            		
+            		colorRateProp = subcat.get("Color Rate");
+            		normalRateProp = subcat.get("Normal Rate");
+            		runRateProp = subcat.get("Run Rate");
+            	} else if(subcatName.equalsIgnoreCase("network_settings")) {
+            		subcat.setComment("Network Settings");
+            		
+            		ipProp = subcat.get("Bridge IP");
+            		groupProp = subcat.get("Light Group Name");
+            		authProp = subcat.get("Authorization");
+            	}
+            }
+            
+            colorRateProp.setComment("Transition rate on color change (in 100ms).\nDefault = 7 (700ms); Min = 0, Max = 10 (1s).");
+            normalRateProp.setComment("Transition rate on light level change (in 100ms).\nDefault = 3 (300ms); Min = 0, Max = 10 (1s).");
+            runRateProp.setComment("Rate at which mod rechecks surroundings (in ticks).\nDefault = 4 (200ms); Min = 2 (100ms).");
+            
+            ipProp.setComment("Local IP address of Philips Hue Bridge.");
+            groupProp.setComment("Name of light group affected by mod (defaults to \"ALL\" on registration).");
+            authProp.setComment("Authorization string for network communication (you probably don't want to change this).");
+            
+            runRateProp.setRequiresMcRestart(true);
+            
+            returnArr = new int[] {
+            		colorRateProp.getInt(),
+            		normalRateProp.getInt(),
+            		runRateProp.getInt()
+            };
+        } catch(Exception e) {
+        	System.out.println("Error loading config, returning to default variables.");
+        	e.printStackTrace();
+        } finally {
+            config.save();
+        }
+    	
+    	return returnArr;
+    }
 
     private void generateDataFiles() {
-		File df = configDir;
-		File file = new File(df, "player_data.txt");
-		File config = new File(df, "config.txt");
-		
-		if (!df.exists()) { df.mkdir(); }
-		
-		if(!file.exists()) {
-			try {
-				file.createNewFile();
-			} catch(Exception e) {
-				e.printStackTrace();
-			}
-		}
+		File blockConfig = new File(configDir, "minecraft-hue-blocks.txt");
 
-		if(!config.exists()) {
+		if(!blockConfig.exists()) {
 			try {
-				config.createNewFile();
+				blockConfig.createNewFile();
 
-				try(FileWriter fw = new FileWriter(config.getPath(), false);
+				try(FileWriter fw = new FileWriter(blockConfig.getPath(), false);
 					BufferedWriter bw = new BufferedWriter(fw);
 			    	PrintWriter out = new PrintWriter(bw)) {
 
-					out.println("Run Rate:4");
-					out.println("Color Transition Rate:7");
-					out.println("Normal Transition Rate:3");
 					out.println("BLUE_WOOL#DEFAULT:46014,254");
 					out.println("BROWN_WOOL#DEFAULT:7194,231");
 					out.println("CYAN_WOOL#DEFAULT:41385,233");
@@ -164,6 +205,7 @@ public class MinecraftHueMod {
 					out.println("MAGENTA_WOOL#DEFAULT:50685,223");
 					out.println("MYCEL#DEFAULT:46711,143");
 					out.println("NETHERRACK#DEFAULT:65295,254");
+					out.println("OBSIDIAN#DEFAULT:47416,214");
 					out.println("ORANGE_WOOL#DEFAULT:6375,254");
 					out.println("PINK_WOOL#DEFAULT:53899,149");
 					out.println("PURPLE_WOOL#DEFAULT:47509,214");

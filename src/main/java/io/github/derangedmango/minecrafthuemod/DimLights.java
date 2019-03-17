@@ -1,8 +1,5 @@
 package io.github.derangedmango.minecrafthuemod;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Scanner;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
@@ -10,7 +7,6 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 
 public class DimLights {
-	private final File configDir;
 	private EntityPlayer player;
 	private LocalConnection con;
 	private int lastLightLevel;
@@ -27,8 +23,7 @@ public class DimLights {
 	private BlockConfig[] blockConfigArr;
 	private int[] alphaArr;
 
-    public DimLights(File dir, EntityPlayer player, int c, int n, BlockConfig[] bc, int[] a) {
-        configDir = dir;
+    public DimLights(EntityPlayer player, int c, int n, BlockConfig[] bc, int[] a) {
     	this.player = player;
         con = null;
         lastLightLevel = -1;
@@ -48,9 +43,9 @@ public class DimLights {
 
     public void run() {
     	if(!paused) {
-			if(conInfo == null) conInfo = getLightIP(player.getName());
+			if(conInfo == null) conInfo = getLightIP();
 	    	
-	    	if(conInfo[0] != null) {
+	    	if(conInfo[0] != null && !conInfo[0].equals("") && player != null) {
 	    		setLightLevel(getPlayerLightLevel(), conInfo[0], conInfo[1], conInfo[2]);
 	    	} else {
 	    		this.pause();
@@ -86,14 +81,12 @@ public class DimLights {
     public void setNormalRate(int r) { normalRate = r; }
     public void setBlockConfigArr(BlockConfig[] arr) { blockConfigArr = arr; }
     public void setAlphaArr(int[] arr) { alphaArr = arr; }
-    public void resetConInfo() { conInfo = null; }
+    public void resetConInfo() { conInfo = null; con = null; }
     
     private int getPlayerLightLevel() {
     	BlockPos pos = player.getPosition();
     	World world = player.getEntityWorld();
     	
-    	// System.out.println("PLAYER POSITION: " + pos.toString());
-    	// System.out.println("LIGHT LEVEL: " + world.getLightFromNeighbors(pos));
     	return world.getLightFromNeighbors(pos);
     }
 
@@ -116,14 +109,14 @@ public class DimLights {
     			}
     			
     			if(con.registerUser()) {
-    				conInfo = getLightIP(player.getName());
+    				conInfo = getLightIP();
     				player.sendMessage(new TextComponentString("Connection Registered!"));
     			} else {
     				buttonPromptCounter++;
     			}
     		} else if(con.toString().equalsIgnoreCase("Ready")) {
     			int[] color = getDomColor();
-    			
+
     			if(inTheEnd) lightLevel = 15;
     			
     			if(nearFire) {
@@ -151,35 +144,16 @@ public class DimLights {
     			this.pause();
     		}
     	} else {
-    		con = new LocalConnection(configDir, player, lightIP, lightGroup, username);
+    		con = new LocalConnection(lightIP, lightGroup, username);
     	}
     }
     
-    private String[] getLightIP(String name) {
-    	String[] result = new String[3];
-    	boolean match = false;
-    	
-    	try(Scanner scanner = new Scanner(new File(configDir, "player_data.txt"))) {
-					
-			while (scanner.hasNextLine()  && !match) {
-				String line = scanner.nextLine();
-				
-				if(line.substring(0, line.indexOf(":")).equalsIgnoreCase(name)) {
-					match = true;
-					
-					String[] arr = line.substring(line.indexOf(":") + 1).split(",");
-					result[0] = arr[0];
-					result[1] = arr[1];
-					result[2] = arr[2];
-				}
-			}
-			
-			scanner.close();
-    	} catch(IOException e) {
-    		e.printStackTrace();
-    	}
-    	
-    	return result;
+    private String[] getLightIP() {
+    	return new String[] {
+    			MinecraftHueMod.config.getNetwork()[0],
+    			MinecraftHueMod.config.getNetwork()[1],
+    			MinecraftHueMod.config.getAuth()
+    	};
     }
     
     private int[] getDomColor() {
@@ -259,9 +233,6 @@ public class DimLights {
 		
 		inTheEnd = false;
 		
-		// System.out.println("DOMINANT BLOCK: " + domBlock);
-		// System.out.println("DOMINANT HUE: " + getColorFromBlock(domBlock, blockTypes, blockCounts, lastIndex)[0]);
-		// System.out.println("DOMINANT SAT: " + getColorFromBlock(domBlock, blockTypes, blockCounts, lastIndex)[1]);
 		return getColorFromBlock(domBlock, blockTypes, blockCounts, lastIndex);
 	}
     
@@ -279,11 +250,13 @@ public class DimLights {
 			return "STONE";
 		} else if(name.contains("LAVA")) {
 			return "LAVA";
-		} else if(name.contains("SAND")) {
+		} else if(name.contains("SAND") && !name.equalsIgnoreCase("SOUL_SAND")) {
 			return "SAND";
 		} else if(name.equalsIgnoreCase("WOOL")) {
 			return world.getBlockState(pos).getValue(block.getBlockState().getProperty("color"))
 				.toString().toUpperCase() + "_WOOL";
+		} else if(name.contains("NETHER") || name.equalsIgnoreCase("SOUL_SAND")) {
+			return "NETHERRACK";
 		} else {
 			return name;
 		}
@@ -295,7 +268,6 @@ public class DimLights {
 
     	String biome = player.world.getBiome(player.getPosition()).getBiomeName().toUpperCase();
     	if(biome.contains("MESA")) biome = "MESA";
-    	// System.out.println("BIOME: " + biome);
 
     	for(int i = alphaArr[alphaIndex]; i < blockConfigArr.length; i++) {
     		if(domBlock.equalsIgnoreCase(blockConfigArr[i].getName())) {

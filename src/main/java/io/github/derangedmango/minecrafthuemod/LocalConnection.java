@@ -1,36 +1,26 @@
 package io.github.derangedmango.minecrafthuemod;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Scanner;
-import net.minecraft.entity.player.EntityPlayer;
 
 public class LocalConnection {
 	private int status;
-	private EntityPlayer player;
 	private String ip;
 	private String group;
 	private String username;
 	private String[] lightIDs;
-	private final File configDir;
 	
-	public LocalConnection(File dir, EntityPlayer player, String ip, String group, String username) {
+	public LocalConnection(String ip, String group, String username) {
 		this.ip = ip;
 		this.group = group;
 		this.username = username;
-		this.player = player;
 		status = 0;
-		configDir = dir;
 		
 		initializeConnection();
 	}
@@ -66,7 +56,7 @@ public class LocalConnection {
 				status = 3;
 				return true;
 			} else if(username.contains("link button not pressed")) {
-				// plugin.getLogger().info("button has not yet been pressed!");
+				System.out.println("Button has not yet been pressed!");
 			}
 		}
 		
@@ -101,8 +91,6 @@ public class LocalConnection {
 		    	while ((line = rd.readLine()) != null) {
 			    	result.append(line);
 			    }
-		    	
-		    	// plugin.getLogger().info(result.toString());
 	
 			} catch(IOException e) {
 				e.printStackTrace();
@@ -150,6 +138,7 @@ public class LocalConnection {
 		
 		try {
 		    URL url = new URL(urlString);
+		    System.out.println(urlString);
 		    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		    conn.setConnectTimeout(1500);
 		    conn.setRequestMethod("GET");
@@ -163,10 +152,8 @@ public class LocalConnection {
 		    
 		    rd.close();
 		    
-		    // plugin.getLogger().info(result.toString());
-		    
 		} catch(SocketTimeoutException e) {
-			//plugin.getLogger().info("Connection to " + player.getName() + "'s hub timed out, likely bad IP!");
+			System.out.println("Connection to hub timed out, likely bad IP!");
 		}  catch(IOException e) {
 			e.printStackTrace();
 		}
@@ -200,8 +187,6 @@ public class LocalConnection {
 	    	while ((line = rd.readLine()) != null) {
 		    	result.append(line);
 		    }
-	    	
-	    	// plugin.getLogger().info(result.toString());
 
 		} catch(IOException e) {
 			e.printStackTrace();
@@ -211,47 +196,7 @@ public class LocalConnection {
 	}
 	
 	private void logUsername() {
-		File file = new File(configDir, "player_data.txt");
-		boolean match = false;
-		String outString = "";
-		
-		try(Scanner scanner = new Scanner(file)) {
-			
-			while (scanner.hasNextLine()) {
-				String line = scanner.nextLine();
-				
-				if(line.substring(0, line.indexOf(":")).equalsIgnoreCase(player.getName())) {
-					match = true;
-					outString = outString + line.substring(0, line.indexOf("$")) + username + "~";
-				} else {
-					outString = outString + line + "~";
-				}
-			}
-			
-			scanner.close();
-    	} catch(IOException e) {
-    		e.printStackTrace();
-    	}
-		
-		if(match) {
-			try(FileWriter fw = new FileWriter(file.getPath(), false);
-				BufferedWriter bw = new BufferedWriter(fw);
-			    PrintWriter out = new PrintWriter(bw)) {
-				
-				String seg = "";
-				
-				for(int x = 0; x < outString.length(); x++) {
-					if(String.valueOf(outString.charAt(x)).equals("~")) {
-						out.println(seg);
-						seg = "";
-					} else {
-						seg = seg + outString.charAt(x);
-					}
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		MinecraftHueMod.config.setAuth(username);
 	}
 	
 	public String toString() {

@@ -17,36 +17,34 @@ public class EventListener {
 	private final BlockConfig[] blockConfigArr;
 	private final String sessionUser;
 	private int tick;
-	private DimLights task;
 	
-	public EventListener(DimLights t, int r, int c, int n, int[] a, BlockConfig[] bc, String u) {
+	public EventListener(int r, int c, int n, int[] a, BlockConfig[] bc, String u) {
 		runRate = r * 2;
 		colorRate = c;
 		normalRate = n;
 		alphaArr = a;
 		blockConfigArr = bc;
 		tick = 0;
-		task = t;
 		sessionUser = u;
 	}
 	
 	@SubscribeEvent
 	public void onPlayerLogin(PlayerLoggedInEvent event) {
 		if(event.player.getName().equals(sessionUser)) {
-			task.setPlayer(event.player);
-			task.setColorRate(colorRate);
-			task.setNormalRate(normalRate);
-			task.setBlockConfigArr(blockConfigArr);
-			task.setAlphaArr(alphaArr);
-			task.resume();
+			MinecraftHueMod.task.setPlayer(event.player);
+			MinecraftHueMod.task.setColorRate(colorRate);
+			MinecraftHueMod.task.setNormalRate(normalRate);
+			MinecraftHueMod.task.setBlockConfigArr(blockConfigArr);
+			MinecraftHueMod.task.setAlphaArr(alphaArr);
+			MinecraftHueMod.task.resume();
 		}
 	}
 	
 	@SubscribeEvent
 	public void onPlayerLogout(PlayerLoggedOutEvent event) {
 		if(event.player.getName().equals(sessionUser)) {
-			task.deactivateFire();
-			task.pause();
+			MinecraftHueMod.task.deactivateFire();
+			MinecraftHueMod.task.pause();
 		}
 	}
 	
@@ -54,17 +52,17 @@ public class EventListener {
 	public void onServerTick(TickEvent.ServerTickEvent event) {
 		if(++tick / runRate == 1) {
 			tick = 0;
-			task.run();
+			MinecraftHueMod.task.run();
 		}
 	}
 	
 	@SubscribeEvent
 	public void onLightning(PlaySoundEvent event) {
 		if(event.getName().equalsIgnoreCase("entity.lightning.thunder")) {
-			LocalConnection con = task.getCon();
+			LocalConnection con = MinecraftHueMod.task.getCon();
 			
 	        if(con != null && con.toString().equalsIgnoreCase("Ready")) {
-	        	LightningThread thread = new LightningThread(task, con);
+	        	LightningThread thread = new LightningThread(MinecraftHueMod.task, con);
 	        	thread.start();
         	}
 		}
@@ -76,10 +74,10 @@ public class EventListener {
 			EntityPlayer player = (EntityPlayer) event.getEntityLiving();
 			
 			if(player.getName().equals(sessionUser)) {
-				LocalConnection con = task.getCon();
+				LocalConnection con = MinecraftHueMod.task.getCon();
 				
 				if(con != null && con.toString().equalsIgnoreCase("Ready")) {
-	        		task.pause();
+					MinecraftHueMod.task.pause();
 	            	
 	            	con.dim(254, 60088, 123, 0);
 	    			
@@ -89,7 +87,7 @@ public class EventListener {
 	    				e.printStackTrace();
 	    			}
 	            	
-	            	task.resume();
+	    			MinecraftHueMod.task.resume();
 	        	}
 			}
 		}
