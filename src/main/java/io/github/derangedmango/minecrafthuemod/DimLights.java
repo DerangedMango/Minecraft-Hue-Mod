@@ -243,7 +243,7 @@ public class DimLights {
     	if(name.contains("WATER")) {
 			return "WATER";
 		} else if(name.equalsIgnoreCase("DOUBLE_PLANT") || name.equalsIgnoreCase("TALLGRASS") || name.equalsIgnoreCase("LEAVES") 
-				|| name.equalsIgnoreCase("LEAVES_2")) {
+				|| name.equalsIgnoreCase("LEAVES_2") || name.equalsIgnoreCase("LEAVES2")) {
 			return "GRASS";
 		} else if((name.contains("STONE") && !name.contains("SAND") && !name.contains("RED")
 				&& !name.contains("END")) || name.equalsIgnoreCase("GRAVEL")  || name.contains("ORE")) {
