@@ -16,7 +16,7 @@ The mod adds two commands:
 You can find the local IP of your Hue Bridge/Hub easily using their mobile app. You do not need to provide a light group, but the mod will connect to all of your Hue lights by default if you don’t. The group name can have spaces but it currently only accepts one group.
 
 ## Download
-The mod jar file can be downloaded [here](http://www.mediafire.com/file/89pbimpsepc4fw7/minecraft-hue-1.0.0.jar/file).  
+The mod jar file can be downloaded [here](https://github.com/DerangedMango/Minecraft-Hue-Mod/releases).  
 Don't know how to install a mod file? Follow these [instructions](https://www.minecraftmods.com/how-to-install-mods-for-minecraft-forge/).
 
 ## Donate
