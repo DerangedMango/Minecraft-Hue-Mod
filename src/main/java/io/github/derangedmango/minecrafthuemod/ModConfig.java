@@ -25,7 +25,7 @@ public class ModConfig extends Configuration {
 		rate_settings.put("Run Rate", 4);
 		network_settings.put("Light Group Name", "");
 		network_settings.put("Bridge IP", "");
-		network_settings.put("Authorization", "$");
+		network_settings.put("Authorization", "null");
 	}
 	
 	public ModConfig(File f) {
